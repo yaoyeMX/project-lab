@@ -1,0 +1,1183 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <title>Python选择题</title>
+    <style>
+      :root {
+        --bg: #f4f6f9;
+        --surface: #ffffff;
+        --text: #18212f;
+        --muted: #687385;
+        --line: #dce2ea;
+        --accent: #225fd1;
+        --accent-soft: #edf3ff;
+        --correct: #18794e;
+        --correct-bg: #eaf7f0;
+        --wrong: #bd2c2c;
+        --wrong-bg: #fff0f0;
+        --marked: #b56b00;
+        --radius: 10px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: auto;
+      }
+      body {
+        margin: 0;
+        min-width: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+          sans-serif;
+        font-size: 16px;
+        line-height: 1.65;
+      }
+      button,
+      input {
+        font: inherit;
+      }
+      button {
+        color: inherit;
+      }
+      .app {
+        min-height: 100vh;
+      }
+      .topbar {
+        position: sticky;
+        z-index: 20;
+        top: 0;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.97);
+      }
+      .topbar-inner,
+      .content {
+        width: min(960px, 100%);
+        margin: 0 auto;
+        padding-inline: 18px;
+      }
+      .title-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding-top: 12px;
+      }
+      h1 {
+        min-width: 0;
+        margin: 0;
+        font-size: 1.15rem;
+        line-height: 1.35;
+        flex: 1;
+      }
+      .top-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .sync-status {
+        white-space: nowrap;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      .sync-status[data-state="error"] {
+        color: var(--wrong);
+      }
+      .sync-status[data-state="synced"] {
+        color: var(--correct);
+      }
+      .compact-button,
+      .action-button,
+      .tab,
+      .mark-button,
+      .remove-button {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        cursor: pointer;
+      }
+      .compact-button {
+        padding: 6px 10px;
+        font-size: 0.86rem;
+        white-space: nowrap;
+      }
+      .compact-button:hover,
+      .action-button:hover,
+      .remove-button:hover {
+        border-color: #aab6c7;
+      }
+      .stats {
+        padding: 7px 0 8px;
+        color: #3d4858;
+        font-size: 0.88rem;
+        font-variant-numeric: tabular-nums;
+        overflow-wrap: anywhere;
+      }
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-bottom: 10px;
+      }
+      .tabs {
+        display: flex;
+        min-width: 0;
+        gap: 4px;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .tabs::-webkit-scrollbar {
+        display: none;
+      }
+      .tab {
+        padding: 6px 11px;
+        color: #485467;
+        font-size: 0.88rem;
+        white-space: nowrap;
+      }
+      .tab[aria-selected="true"] {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-weight: 650;
+      }
+      .toolbar-actions {
+        display: flex;
+        gap: 8px;
+        margin-left: auto;
+      }
+      .action-button {
+        padding: 6px 10px;
+        font-size: 0.84rem;
+        white-space: nowrap;
+      }
+      .action-button.primary {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .content {
+        padding-top: 18px;
+        padding-bottom: 64px;
+      }
+      .module {
+        margin: 0 0 26px;
+      }
+      .module-title {
+        margin: 0 0 10px;
+        padding-left: 10px;
+        border-left: 4px solid var(--accent);
+        font-size: 1.05rem;
+        line-height: 1.45;
+      }
+      .question-card {
+        position: relative;
+        margin-bottom: 12px;
+        padding: 15px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--surface);
+        overflow: hidden;
+      }
+      .question-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .question-text {
+        flex: 1;
+        min-width: 0;
+        margin: 0 0 11px;
+        font-size: 1rem;
+        font-weight: 650;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      .mark-button {
+        flex: 0 0 36px;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        color: #788395;
+        font-size: 1.35rem;
+        line-height: 1;
+      }
+      .mark-button.active {
+        border-color: #f0c36a;
+        background: #fff7df;
+        color: var(--marked);
+      }
+      .options {
+        display: grid;
+        gap: 7px;
+      }
+      .option {
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr);
+        gap: 8px;
+        width: 100%;
+        padding: 9px 11px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        text-align: left;
+        cursor: pointer;
+      }
+      .option:hover:not(:disabled) {
+        border-color: #9eb3d5;
+        background: #f8fbff;
+      }
+      .option:focus-visible,
+      button:focus-visible,
+      input:focus-visible {
+        outline: 3px solid rgba(34, 95, 209, 0.25);
+        outline-offset: 2px;
+      }
+      .option:disabled {
+        cursor: default;
+        opacity: 1;
+      }
+      .option-letter {
+        font-weight: 700;
+        color: #354156;
+      }
+      .option-text {
+        min-width: 0;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      .option.correct {
+        border-color: #72bd98;
+        background: var(--correct-bg);
+        color: #0f603d;
+      }
+      .option.incorrect {
+        border-color: #e29a9a;
+        background: var(--wrong-bg);
+        color: #9f2525;
+      }
+      .feedback {
+        margin: 10px 0 0;
+        font-weight: 650;
+        color: var(--wrong);
+      }
+      .pending-note {
+        margin: 10px 0 0;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+      .question-footer {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 10px;
+      }
+      .remove-button {
+        padding: 5px 9px;
+        color: var(--wrong);
+        font-size: 0.82rem;
+      }
+      .empty {
+        padding: 56px 18px;
+        text-align: center;
+        color: var(--muted);
+      }
+      .gate {
+        max-width: 520px;
+        margin: 54px auto;
+        padding: 28px 22px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--surface);
+        text-align: center;
+      }
+      .gate-title {
+        margin: 0 0 6px;
+        font-size: 1.08rem;
+      }
+      .gate-copy {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+      .toast {
+        position: fixed;
+        z-index: 50;
+        left: 50%;
+        bottom: max(24px, env(safe-area-inset-bottom));
+        transform: translateX(-50%);
+        max-width: calc(100vw - 32px);
+        padding: 9px 14px;
+        border-radius: 8px;
+        background: #172033;
+        color: #fff;
+        font-size: 0.88rem;
+      }
+      .toast[hidden] {
+        display: none;
+      }
+      dialog {
+        width: min(420px, calc(100vw - 28px));
+        padding: 0;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        color: var(--text);
+      }
+      dialog::backdrop {
+        background: rgba(20, 28, 40, 0.42);
+      }
+      .dialog-body {
+        padding: 20px;
+      }
+      .dialog-title {
+        margin: 0 0 6px;
+        font-size: 1.1rem;
+      }
+      .dialog-copy {
+        margin: 0 0 14px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .auth-input {
+        width: 100%;
+        padding: 10px 11px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+      .auth-input + .auth-input {
+        margin-top: 10px;
+      }
+      .dialog-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 14px;
+      }
+      .dialog-actions button {
+        padding: 8px 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        cursor: pointer;
+      }
+      .dialog-actions .primary {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: #fff;
+      }
+      .local-note {
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      @media (max-width: 700px) {
+        body {
+          font-size: 15px;
+        }
+        .topbar-inner,
+        .content {
+          padding-inline: 12px;
+        }
+        .title-row {
+          align-items: flex-start;
+          flex-wrap: wrap;
+        }
+        h1 {
+          flex-basis: calc(100% - 96px);
+        }
+        .sync-status {
+          order: 3;
+          width: 100%;
+        }
+        .toolbar {
+          align-items: flex-start;
+          flex-wrap: wrap;
+        }
+        .tabs {
+          width: 100%;
+        }
+        .toolbar-actions {
+          margin-left: 0;
+          width: 100%;
+        }
+        .action-button {
+          flex: 1;
+        }
+        .content {
+          padding-top: 12px;
+        }
+        .question-card {
+          padding: 13px 11px;
+        }
+        .option {
+          padding: 9px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          scroll-behavior: auto !important;
+        }
+      }
+      @media print {
+        .topbar,
+        .mark-button,
+        .question-footer,
+        .toast {
+          display: none !important;
+        }
+        body {
+          background: #fff;
+        }
+        .question-card {
+          break-inside: avoid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="topbar-inner">
+          <div class="title-row">
+            <h1>选择题练习</h1>
+            <span id="sync-status" class="sync-status" data-state="local">☁ 仅本地</span>
+            <button id="account-button" class="compact-button" type="button">登录同步</button>
+          </div>
+          <div class="toolbar" style="flex-wrap: wrap; gap: 12px">
+            <label>题库：<select id="bank-select" class="compact-button"><option value="public">公共基础</option><option value="python" selected>Python</option></select></label>
+            <label>模式：<select id="mode-select" class="compact-button"><option value="practice">刷题</option><option value="study">背题</option></select></label>
+          </div>
+          <div id="stats" class="stats" aria-live="polite"></div>
+          <div class="toolbar">
+            <nav id="tabs" class="tabs" aria-label="题目筛选"></nav>
+            <div class="toolbar-actions">
+              <button id="reset-wrong" class="action-button primary" type="button" hidden>重新作答全部错题</button>
+              <button id="reset-all" class="action-button" type="button">重新刷本题库</button>
+            </div>
+          </div>
+        </div>
+      </header>
+      <main id="quiz" class="content"></main>
+    </div>
+
+    <dialog id="auth-dialog">
+      <form id="auth-form" class="dialog-body" method="dialog">
+        <h2 class="dialog-title">跨设备同步</h2>
+        <p id="auth-copy" class="dialog-copy">输入邮箱和密码登录。</p>
+        <input
+          id="email"
+          class="auth-input"
+          type="email"
+          autocomplete="email"
+          placeholder="name@example.com"
+          aria-label="邮箱地址"
+          required
+        />
+        <input
+          id="password"
+          class="auth-input"
+          type="password"
+          autocomplete="current-password"
+          placeholder="密码"
+          aria-label="密码"
+          required
+        />
+        <p class="local-note">登录成功后才会读取私有题库，题库内容不会内嵌在本页面中。</p>
+        <div class="dialog-actions">
+          <button id="sign-out" type="button" hidden>退出登录</button>
+          <button id="close-dialog" type="button">取消</button>
+          <button id="login-button" class="primary" type="submit">登录</button>
+        </div>
+      </form>
+    </dialog>
+    <div id="toast" class="toast" role="status" hidden></div>
+
+    <script>
+      (() => {
+        "use strict";
+
+        const SUPABASE_URL = "https://tolidsnmafutrjzpgers.supabase.co";
+        const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_TqpOIWQ7Sg-Lf0D6PsRZwg_EcZrTeiM";
+        const BANKS = {
+          public: { id: "ncre_public_202609_660", object: "public-basic.json" },
+          python: { id: "ncre_python_202609", object: "python.json" },
+        };
+        let BANK_ID = BANKS.python.id;
+        const STORAGE_BUCKET = "quiz-banks";
+        let STORAGE_OBJECT = BANKS.python.object;
+        let STORAGE_KEY = `quiz-progress-v1-${BANK_ID}`;
+        let mode = "practice";
+        let loading = false;
+        let loadVersion = 0;
+        let questions = [];
+        const validAnswers = new Set(["A", "B", "C", "D"]);
+        const els = {
+          bank: document.getElementById("bank-select"),
+          mode: document.getElementById("mode-select"),
+          quiz: document.getElementById("quiz"),
+          tabs: document.getElementById("tabs"),
+          stats: document.getElementById("stats"),
+          resetWrong: document.getElementById("reset-wrong"),
+          resetAll: document.getElementById("reset-all"),
+          sync: document.getElementById("sync-status"),
+          account: document.getElementById("account-button"),
+          dialog: document.getElementById("auth-dialog"),
+          authForm: document.getElementById("auth-form"),
+          authCopy: document.getElementById("auth-copy"),
+          email: document.getElementById("email"),
+          password: document.getElementById("password"),
+          signOut: document.getElementById("sign-out"),
+          login: document.getElementById("login-button"),
+          closeDialog: document.getElementById("close-dialog"),
+          toast: document.getElementById("toast"),
+        };
+
+        let activeTab = "all";
+        let stateUpdatedAt = 0;
+        let scrollPosition = 0;
+        let scrollTimer = 0;
+        let syncTimer = 0;
+        let toastTimer = 0;
+        let supabaseClient = null;
+        let currentUser = null;
+        let cloudReady = false;
+        let bankLoadPromise = null;
+
+        function configuredForCloud() {
+          return SUPABASE_URL.startsWith("https://") && SUPABASE_PUBLISHABLE_KEY.length > 30;
+        }
+
+        function showToast(message) {
+          clearTimeout(toastTimer);
+          els.toast.textContent = message;
+          els.toast.hidden = false;
+          toastTimer = window.setTimeout(() => {
+            els.toast.hidden = true;
+          }, 2600);
+        }
+
+        function setSyncStatus(state) {
+          const labels = {
+            locked: "🔒 未登录",
+            loading: "☁ 加载中",
+            syncing: "☁ 同步中",
+            pending: "☁ 待同步",
+            synced: "☁ 已同步",
+            error: "⚠ 同步失败",
+            unconfigured: "⚠ 未配置",
+          };
+          els.sync.textContent = labels[state] || labels.locked;
+          els.sync.dataset.state = state;
+        }
+
+        function renderGate(title, copy) {
+          els.stats.textContent = "";
+          els.tabs.replaceChildren();
+          els.resetWrong.hidden = true;
+          els.resetAll.hidden = true;
+          const gate = document.createElement("section");
+          gate.className = "gate";
+          const heading = document.createElement("h2");
+          heading.className = "gate-title";
+          heading.textContent = title;
+          const description = document.createElement("p");
+          description.className = "gate-copy";
+          description.textContent = copy;
+          gate.append(heading, description);
+          els.quiz.replaceChildren(gate);
+        }
+
+        function initializeQuestions(payload) {
+          if (!payload || !Array.isArray(payload.questions)) throw new Error("题库数据格式无效");
+          const ids = new Set();
+          questions = payload.questions.map((item) => {
+            if (!item || typeof item.id !== "string" || ids.has(item.id)) throw new Error("题目 ID 无效或重复");
+            if (
+              !Number.isInteger(item.seqNum) ||
+              typeof item.module !== "string" ||
+              typeof item.question !== "string"
+            ) {
+              throw new Error("题目字段格式无效");
+            }
+            if (!item.options || !["A", "B", "C", "D"].every((letter) => typeof item.options[letter] === "string")) {
+              throw new Error("题目选项格式无效");
+            }
+            ids.add(item.id);
+            return {
+              ...item,
+              answer: null,
+              result: "unanswered",
+              locked: false,
+              inWrongSet: false,
+              inMarkedSet: false,
+            };
+          });
+        }
+
+        function exportProgress() {
+          return {
+            questions: questions.map(({ id, answer, result, locked, inWrongSet, inMarkedSet }) => ({
+              id,
+              answer,
+              result,
+              locked,
+              inWrongSet,
+              inMarkedSet,
+            })),
+            scrollPosition,
+            updatedAt: stateUpdatedAt,
+          };
+        }
+
+        function applyProgress(progress) {
+          if (!progress || !Array.isArray(progress.questions)) return;
+          const byId = new Map(progress.questions.map((item) => [item.id, item]));
+          questions.forEach((question) => {
+            const saved = byId.get(question.id);
+            if (!saved) return;
+            question.answer = validAnswers.has(saved.answer) ? saved.answer : null;
+            question.result = ["unanswered", "correct", "incorrect"].includes(saved.result)
+              ? saved.result
+              : "unanswered";
+            question.locked = Boolean(saved.locked);
+            question.inWrongSet = Boolean(saved.inWrongSet);
+            question.inMarkedSet = Boolean(saved.inMarkedSet);
+          });
+          scrollPosition = Math.max(0, Number(progress.scrollPosition) || 0);
+          stateUpdatedAt = Math.max(0, Number(progress.updatedAt) || 0);
+        }
+
+        function restoreLocal() {
+          try {
+            applyProgress(JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"));
+          } catch (error) {
+            console.warn("无法读取本地进度", error);
+          }
+        }
+
+        function saveLocal() {
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(exportProgress()));
+          } catch (error) {
+            showToast("本地进度保存失败");
+          }
+        }
+
+        function commitChange({ sync = true } = {}) {
+          if (mode !== "practice" || loading || !currentUser || !questions.length) return;
+          stateUpdatedAt = Date.now();
+          saveLocal();
+          if (sync) scheduleCloudSync();
+        }
+
+        function counts() {
+          const correct = questions.filter((q) => q.result === "correct").length;
+          const incorrect = questions.filter((q) => q.result === "incorrect").length;
+          const unanswered = questions.filter((q) => q.result === "unanswered").length;
+          const marked = questions.filter((q) => q.inMarkedSet).length;
+          const wrong = questions.filter((q) => q.inWrongSet).length;
+          return {
+            total: questions.length,
+            correct,
+            incorrect,
+            unanswered,
+            marked,
+            wrong,
+            answered: correct + incorrect,
+          };
+        }
+
+        function filteredQuestions() {
+          if (activeTab === "unanswered") return questions.filter((q) => q.result === "unanswered");
+          if (activeTab === "wrong") return questions.filter((q) => q.inWrongSet);
+          if (activeTab === "marked") return questions.filter((q) => q.inMarkedSet);
+          return questions;
+        }
+
+        function makeButton(className, text, onClick) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = className;
+          button.textContent = text;
+          button.addEventListener("click", onClick);
+          return button;
+        }
+
+        function renderQuestion(question) {
+          const card = document.createElement("article");
+          card.className = "question-card";
+          card.id = question.id;
+
+          const head = document.createElement("div");
+          head.className = "question-head";
+          const title = document.createElement("h3");
+          title.className = "question-text";
+          title.textContent = question.question;
+          const mark = makeButton(
+            "mark-button" + (question.inMarkedSet ? " active" : ""),
+            question.inMarkedSet ? "★" : "☆",
+            () => {
+              if (mode !== "practice" || loading) return;
+              question.inMarkedSet = !question.inMarkedSet;
+              commitChange();
+              render();
+            },
+          );
+          mark.setAttribute("aria-label", question.inMarkedSet ? "取消标记" : "标记此题");
+          mark.setAttribute("aria-pressed", String(question.inMarkedSet));
+          mark.disabled = mode === "study";
+          head.append(title, mark);
+          card.append(head);
+
+          const options = document.createElement("div");
+          options.className = "options";
+          const judgeable = validAnswers.has(question.correctAnswer);
+          Object.entries(question.options).forEach(([letter, text]) => {
+            const option = document.createElement("button");
+            option.type = "button";
+            option.className = "option";
+            option.disabled = mode === "study" || question.locked || !judgeable;
+            if ((mode === "study" || question.locked) && letter === question.correctAnswer) option.classList.add("correct");
+            if (mode === "practice" && question.locked && question.result === "incorrect" && letter === question.answer)
+              option.classList.add("incorrect");
+            option.setAttribute("aria-label", `${letter}，${text}`);
+            const key = document.createElement("span");
+            key.className = "option-letter";
+            key.textContent = `${letter}.`;
+            const value = document.createElement("span");
+            value.className = "option-text";
+            value.textContent = text;
+            option.append(key, value);
+            option.addEventListener("click", () => answerQuestion(question, letter));
+            options.append(option);
+          });
+          card.append(options);
+
+          if (!judgeable) {
+            const pending = document.createElement("p");
+            pending.className = "pending-note";
+            pending.textContent = "正确答案待确认，本题暂不参与判分。";
+            card.append(pending);
+          } else if (mode === "study" || question.result === "incorrect") {
+            const feedback = document.createElement("p");
+            feedback.className = "feedback";
+            if (mode === "study") feedback.style.color = "var(--correct)";
+            feedback.textContent = `正确答案：${question.correctAnswer}`;
+            card.append(feedback);
+          }
+
+          if (mode === "practice" && activeTab === "wrong" && question.inWrongSet) {
+            const footer = document.createElement("div");
+            footer.className = "question-footer";
+            footer.append(
+              makeButton("remove-button", "移出错题库", () => {
+                question.inWrongSet = false;
+                commitChange();
+                render();
+              }),
+            );
+            card.append(footer);
+          }
+          return card;
+        }
+
+        function renderHeader() {
+          const c = counts();
+          const score = c.total ? Math.round((c.correct / c.total) * 100) : 0;
+          els.stats.textContent = `得分 ${score} / 100｜已答 ${c.answered} / ${c.total}｜正确 ${c.correct}｜错误 ${c.incorrect}｜标记 ${c.marked}`;
+          const tabs = [
+            ["all", "全部", c.total],
+            ["unanswered", "未答", c.unanswered],
+            ["wrong", "错题", c.wrong],
+            ["marked", "标记", c.marked],
+          ];
+          els.tabs.replaceChildren(
+            ...tabs.map(([id, label, count]) => {
+              const tab = makeButton("tab", `${label} ${count}`, () => {
+                activeTab = id;
+                render();
+                window.scrollTo({ top: 0 });
+              });
+              tab.setAttribute("role", "tab");
+              tab.setAttribute("aria-selected", String(activeTab === id));
+              return tab;
+            }),
+          );
+          els.resetWrong.hidden = mode === "study" || activeTab !== "wrong";
+        }
+
+        function render() {
+          els.resetAll.hidden = mode === "study";
+          renderHeader();
+          const visible = filteredQuestions();
+          if (!visible.length) {
+            const empty = document.createElement("div");
+            empty.className = "empty";
+            empty.textContent = activeTab === "all" ? "题库为空" : "当前筛选下没有题目";
+            els.quiz.replaceChildren(empty);
+            return;
+          }
+          const modules = new Map();
+          visible.forEach((question) => {
+            if (!modules.has(question.module)) modules.set(question.module, []);
+            modules.get(question.module).push(question);
+          });
+          const fragment = document.createDocumentFragment();
+          modules.forEach((moduleQuestions, moduleName) => {
+            const section = document.createElement("section");
+            section.className = "module";
+            const heading = document.createElement("h2");
+            heading.className = "module-title";
+            heading.textContent = moduleName;
+            section.append(heading, ...moduleQuestions.map(renderQuestion));
+            fragment.append(section);
+          });
+          els.quiz.replaceChildren(fragment);
+        }
+
+        function answerQuestion(question, letter) {
+          if (mode !== "practice" || loading || !currentUser) return;
+          if (question.locked || !validAnswers.has(question.correctAnswer)) return;
+          question.answer = letter;
+          question.locked = true;
+          if (letter === question.correctAnswer) {
+            question.result = "correct";
+          } else {
+            question.result = "incorrect";
+            question.inWrongSet = true;
+          }
+          commitChange();
+          render();
+        }
+
+        els.resetAll.addEventListener("click", () => {
+          if (mode !== "practice" || loading || !questions.length) return;
+          if (!window.confirm("确定重新刷本题库吗？错题库和标记不会被清除。")) return;
+          questions.forEach((question) => {
+            question.answer = null;
+            question.result = "unanswered";
+            question.locked = false;
+          });
+          commitChange();
+          render();
+          window.scrollTo({ top: 0 });
+        });
+
+        els.resetWrong.addEventListener("click", () => {
+          if (mode !== "practice" || loading) return;
+          const wrongQuestions = questions.filter((question) => question.inWrongSet);
+          if (!wrongQuestions.length) return;
+          if (!window.confirm(`确定重新作答全部 ${wrongQuestions.length} 道错题吗？`)) return;
+          wrongQuestions.forEach((question) => {
+            question.answer = null;
+            question.result = "unanswered";
+            question.locked = false;
+          });
+          commitChange();
+          render();
+        });
+
+        window.addEventListener(
+          "scroll",
+          () => {
+            if (mode !== "practice" || loading || !currentUser || !questions.length) return;
+            scrollPosition = Math.max(0, Math.round(window.scrollY));
+            clearTimeout(scrollTimer);
+            scrollTimer = window.setTimeout(() => {
+              commitChange({ sync: false });
+              scheduleCloudSync(1600);
+            }, 250);
+          },
+          { passive: true },
+        );
+
+        function scheduleCloudSync(delay = 700) {
+          if (!configuredForCloud() || !currentUser || !cloudReady) return;
+          setSyncStatus("pending");
+          clearTimeout(syncTimer);
+          syncTimer = window.setTimeout(syncCloud, delay);
+        }
+
+        async function syncCloud() {
+          if (!supabaseClient || !currentUser || !questions.length) return;
+          const bankId = BANK_ID;
+          const userId = currentUser.id;
+          setSyncStatus("syncing");
+          const progress = exportProgress();
+          const { error } = await supabaseClient.from("quiz_progress").upsert(
+            {
+              user_id: userId,
+              bank_id: bankId,
+              progress,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "user_id,bank_id" },
+          );
+          if (bankId === BANK_ID && userId === currentUser?.id) setSyncStatus(error ? "error" : "synced");
+          if (error) console.error("同步失败", error);
+        }
+
+        function loadSupabaseScript() {
+          return new Promise((resolve, reject) => {
+            if (window.supabase) return resolve();
+            const script = document.createElement("script");
+            script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.append(script);
+          });
+        }
+
+        async function loadCloudProgress(version) {
+          if (!supabaseClient || !currentUser || !questions.length) return;
+          setSyncStatus("syncing");
+          const { data, error } = await supabaseClient
+            .from("quiz_progress")
+            .select("progress,updated_at")
+            .eq("user_id", currentUser.id)
+            .eq("bank_id", BANK_ID)
+            .maybeSingle();
+          if (version !== loadVersion || !currentUser) return;
+          if (error) {
+            setSyncStatus("error");
+            console.error("读取云端进度失败", error);
+            return;
+          }
+          const cloudUpdatedAt = Math.max(
+            Number(data?.progress?.updatedAt) || 0,
+            data?.updated_at ? new Date(data.updated_at).getTime() : 0,
+          );
+          if (data?.progress && cloudUpdatedAt > stateUpdatedAt) {
+            applyProgress(data.progress);
+            saveLocal();
+            setSyncStatus("synced");
+          } else {
+            await syncCloud();
+          }
+        }
+
+        async function loadPrivateBank(version) {
+          if (!supabaseClient || !currentUser) return;
+          setSyncStatus("loading");
+          renderGate("正在加载题库", "正在从私有存储读取题库数据…");
+          const { data, error } = await supabaseClient.storage.from(STORAGE_BUCKET).download(STORAGE_OBJECT);
+          if (error) throw error;
+          const payload = JSON.parse(await data.text());
+          if (version !== loadVersion || !currentUser) return;
+          initializeQuestions(payload);
+          restoreLocal();
+          await loadCloudProgress(version);
+          if (version !== loadVersion || !currentUser) return;
+          render();
+          requestAnimationFrame(() => window.scrollTo({ top: scrollPosition }));
+        }
+
+        async function loadAuthorizedData() {
+          if (bankLoadPromise) return bankLoadPromise;
+          const version = ++loadVersion;
+          loading = true;
+          els.bank.disabled = true;
+          bankLoadPromise = (async () => {
+            try {
+              await loadPrivateBank(version);
+            } catch (error) {
+              if (version !== loadVersion) return;
+              questions = [];
+              setSyncStatus("error");
+              renderGate("无法读取题库", "请确认当前登录账户具有私有题库读取权限。");
+              console.error("读取私有题库失败", error);
+            }
+          })();
+          try {
+            await bankLoadPromise;
+          } finally {
+            bankLoadPromise = null;
+            loading = false;
+            els.bank.disabled = false;
+          }
+        }
+
+        els.bank.addEventListener("change", async () => {
+          const bank = BANKS[els.bank.value];
+          if (!bank || loading || bank.id === BANK_ID) return;
+          loading = true;
+          els.bank.disabled = true;
+          clearTimeout(scrollTimer);
+          clearTimeout(syncTimer);
+          if (questions.length && currentUser) {
+            saveLocal();
+            try { await syncCloud(); } catch { showToast("云端同步失败，进度已保存在本地"); }
+          }
+          BANK_ID = bank.id;
+          STORAGE_OBJECT = bank.object;
+          STORAGE_KEY = `quiz-progress-v1-${BANK_ID}`;
+          questions = [];
+          stateUpdatedAt = 0;
+          scrollPosition = 0;
+          activeTab = "all";
+          loading = false;
+          els.bank.disabled = false;
+          if (currentUser) await loadAuthorizedData();
+          else renderGate("登录后加载题库", "未登录时不会请求或显示题库内容。");
+        });
+
+        els.mode.addEventListener("change", () => {
+          clearTimeout(scrollTimer);
+          mode = els.mode.value === "study" ? "study" : "practice";
+          if (questions.length && !loading) {
+            render();
+            if (mode === "practice") window.scrollTo({ top: scrollPosition });
+          }
+        });
+
+        async function initCloud() {
+          if (!configuredForCloud()) {
+            setSyncStatus("unconfigured");
+            renderGate("尚未配置 Supabase", "请先填写 Project URL 和 publishable key。");
+            return;
+          }
+          try {
+            await loadSupabaseScript();
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+              auth: {
+                persistSession: true,
+                autoRefreshToken: true,
+                detectSessionInUrl: false,
+              },
+            });
+            cloudReady = true;
+            const { data } = await supabaseClient.auth.getSession();
+            currentUser = data.session?.user || null;
+            updateAccountUI();
+            if (currentUser) await loadAuthorizedData();
+            else {
+              setSyncStatus("locked");
+              renderGate("登录后加载题库", "未登录时不会请求或显示题库内容。");
+            }
+            supabaseClient.auth.onAuthStateChange((_event, session) => {
+              const previousId = currentUser?.id;
+              currentUser = session?.user || null;
+              updateAccountUI();
+              if (currentUser && currentUser.id !== previousId) loadAuthorizedData();
+              if (!currentUser) {
+                ++loadVersion;
+                clearTimeout(scrollTimer);
+                clearTimeout(syncTimer);
+                questions = [];
+                setSyncStatus("locked");
+                renderGate("登录后加载题库", "未登录时不会请求或显示题库内容。");
+              }
+            });
+          } catch (error) {
+            setSyncStatus("error");
+            console.error("Supabase 初始化失败", error);
+          }
+        }
+
+        function updateAccountUI() {
+          els.account.textContent = currentUser ? "同步账户" : "登录同步";
+          els.authCopy.textContent = currentUser
+            ? `已登录：${currentUser.email || "当前账户"}`
+            : "输入邮箱和密码登录。";
+          els.email.hidden = Boolean(currentUser);
+          els.email.required = !currentUser;
+          els.password.hidden = Boolean(currentUser);
+          els.password.required = !currentUser;
+          els.login.hidden = Boolean(currentUser);
+          els.signOut.hidden = !currentUser;
+        }
+
+        els.account.addEventListener("click", () => {
+          updateAccountUI();
+          els.dialog.showModal();
+        });
+        els.closeDialog.addEventListener("click", () => {
+          els.password.value = "";
+          els.dialog.close();
+        });
+        els.authForm.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          if (!configuredForCloud()) {
+            showToast("请先在 HTML 中配置 Supabase");
+            return;
+          }
+          const email = els.email.value.trim();
+          const password = els.password.value;
+          if (!email || !password || !supabaseClient) return;
+          els.login.disabled = true;
+          const previousId = currentUser?.id;
+          const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+          els.login.disabled = false;
+          if (error) {
+            showToast("登录失败，请检查邮箱和密码");
+            return;
+          }
+          currentUser = data.user || data.session?.user || null;
+          updateAccountUI();
+          els.password.value = "";
+          els.dialog.close();
+          showToast("登录成功");
+          if (currentUser && currentUser.id !== previousId && !questions.length) await loadAuthorizedData();
+        });
+        els.signOut.addEventListener("click", async () => {
+          if (supabaseClient) await supabaseClient.auth.signOut();
+          currentUser = null;
+          ++loadVersion;
+          clearTimeout(scrollTimer);
+          clearTimeout(syncTimer);
+          questions = [];
+          updateAccountUI();
+          setSyncStatus(configuredForCloud() ? "locked" : "unconfigured");
+          renderGate("登录后加载题库", "未登录时不会请求或显示题库内容。");
+          els.dialog.close();
+        });
+
+        function registerWebMCP() {
+          const context = document.modelContext;
+          if (!context?.registerTool) return;
+          try {
+            Promise.resolve(
+              context.registerTool({
+                name: "answer_quiz_question",
+                title: "作答题目",
+                description: "按题目稳定 ID 提交 A、B、C 或 D。每轮只允许正式作答一次。",
+                inputSchema: {
+                  type: "object",
+                  properties: {
+                    id: { type: "string", description: "题目 ID，例如 q_0001" },
+                    answer: { type: "string", enum: ["A", "B", "C", "D"] },
+                  },
+                  required: ["id", "answer"],
+                  additionalProperties: false,
+                },
+                annotations: { readOnlyHint: false, untrustedContentHint: false },
+                execute(input) {
+                  if (mode !== "practice" || loading) throw new Error("请在刷题模式完成加载后作答");
+                  if (!input || typeof input.id !== "string" || !validAnswers.has(input.answer)) {
+                    throw new Error("题目 ID 或答案格式无效");
+                  }
+                  const question = questions.find((item) => item.id === input.id);
+                  if (!question) throw new Error("未找到指定题目");
+                  if (!validAnswers.has(question.correctAnswer)) throw new Error("该题正确答案待确认，暂不能作答");
+                  if (question.locked) throw new Error("该题本轮已经作答");
+                  answerQuestion(question, input.answer);
+                  return { id: question.id, answer: question.answer, result: question.result };
+                },
+              }),
+            ).catch((error) => console.warn("WebMCP 工具注册失败", error));
+          } catch (error) {
+            console.warn("WebMCP 工具注册失败", error);
+          }
+        }
+
+        renderGate("登录后加载题库", "未登录时不会请求或显示题库内容。");
+        initCloud();
+        registerWebMCP();
+      })();
+    </script>
+  </body>
+</html>
