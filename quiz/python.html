@@ -448,7 +448,7 @@
             <button id="account-button" class="compact-button" type="button">登录同步</button>
           </div>
           <div class="toolbar" style="flex-wrap: wrap; gap: 12px">
-            <label>题库：<select id="bank-select" class="compact-button"><option value="public">公共基础</option><option value="python" selected>Python</option></select></label>
+            <label>题库：<select id="bank-select" class="compact-button"><option value="public">公共基础</option><option value="basic300">基础 300</option><option value="python" selected>Python</option></select></label>
             <label>模式：<select id="mode-select" class="compact-button"><option value="practice">刷题</option><option value="study">背题</option></select></label>
           </div>
           <div id="stats" class="stats" aria-live="polite"></div>
@@ -503,6 +503,7 @@
         const SUPABASE_URL = "https://tolidsnmafutrjzpgers.supabase.co";
         const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_TqpOIWQ7Sg-Lf0D6PsRZwg_EcZrTeiM";
         const BANKS = {
+          basic300: { id: "ncre_public_202609_300", object: "public-basic-300.json" },
           public: { id: "ncre_public_202609_660", object: "public-basic.json" },
           python: { id: "ncre_python_202609", object: "python.json" },
         };
@@ -514,7 +515,7 @@
         let loading = false;
         let loadVersion = 0;
         let questions = [];
-        const validAnswers = new Set(["A", "B", "C", "D"]);
+        const validAnswers = new Set(["A", "B", "C", "D", "E"]);
         const els = {
           bank: document.getElementById("bank-select"),
           mode: document.getElementById("mode-select"),
@@ -603,7 +604,9 @@
             ) {
               throw new Error("题目字段格式无效");
             }
-            if (!item.options || !["A", "B", "C", "D"].every((letter) => typeof item.options[letter] === "string")) {
+            const letters = item.options && Object.keys(item.options);
+            if (!letters || letters.length < 2 || letters.length > 5 ||
+                !letters.every((letter, index) => letter === "ABCDE"[index] && typeof item.options[letter] === "string")) {
               throw new Error("题目选项格式无效");
             }
             ids.add(item.id);
@@ -707,6 +710,24 @@
           return button;
         }
 
+        // Only local PNG data from the authenticated private bank is rendered as images.
+        // All other content stays plain text; never interpret bank content as HTML.
+        function appendBankContent(element, content) {
+          const pattern = /!\[([^\]\n]*)\]\((data:image\/png;base64,[A-Za-z0-9+/=]+)\)/g;
+          let cursor = 0;
+          for (const match of content.matchAll(pattern)) {
+            if (match.index > cursor) element.append(document.createTextNode(content.slice(cursor, match.index)));
+            const image = document.createElement("img");
+            image.src = match[2];
+            image.alt = match[1] || "原题图";
+            image.loading = "lazy";
+            image.style.cssText = "display:block;max-width:100%;height:auto;margin:8px 0;background:white";
+            element.append(image);
+            cursor = match.index + match[0].length;
+          }
+          if (cursor < content.length) element.append(document.createTextNode(content.slice(cursor)));
+        }
+
         function renderQuestion(question) {
           const card = document.createElement("article");
           card.className = "question-card";
@@ -716,7 +737,7 @@
           head.className = "question-head";
           const title = document.createElement("h3");
           title.className = "question-text";
-          title.textContent = question.question;
+          appendBankContent(title, question.question);
           const mark = makeButton(
             "mark-button" + (question.inMarkedSet ? " active" : ""),
             question.inMarkedSet ? "★" : "☆",
@@ -744,13 +765,13 @@
             if ((mode === "study" || question.locked) && letter === question.correctAnswer) option.classList.add("correct");
             if (mode === "practice" && question.locked && question.result === "incorrect" && letter === question.answer)
               option.classList.add("incorrect");
-            option.setAttribute("aria-label", `${letter}，${text}`);
+            option.setAttribute("aria-label", `${letter}，${text.replace(/!\[([^\]]*)\]\(data:image\/png;base64,[A-Za-z0-9+/=]+\)/g, "$1")}`);
             const key = document.createElement("span");
             key.className = "option-letter";
             key.textContent = `${letter}.`;
             const value = document.createElement("span");
             value.className = "option-text";
-            value.textContent = text;
+            appendBankContent(value, text);
             option.append(key, value);
             option.addEventListener("click", () => answerQuestion(question, letter));
             options.append(option);
@@ -768,6 +789,12 @@
             if (mode === "study") feedback.style.color = "var(--correct)";
             feedback.textContent = `正确答案：${question.correctAnswer}`;
             card.append(feedback);
+            if (validAnswers.has(question.modelAnswer) && question.modelAnswer !== question.correctAnswer) {
+              const review = document.createElement("p");
+              review.className = "pending-note";
+              review.textContent = `模型识别答案：${question.modelAnswer}（与原 PDF 标注答案不一致，请复核）`;
+              card.append(review);
+            }
           }
 
           if (mode === "practice" && activeTab === "wrong" && question.inWrongSet) {
@@ -841,6 +868,7 @@
 
         function answerQuestion(question, letter) {
           if (mode !== "practice" || loading || !currentUser) return;
+          if (!Object.hasOwn(question.options, letter)) return;
           if (question.locked || !validAnswers.has(question.correctAnswer)) return;
           question.answer = letter;
           question.locked = true;
@@ -1144,12 +1172,12 @@
               context.registerTool({
                 name: "answer_quiz_question",
                 title: "作答题目",
-                description: "按题目稳定 ID 提交 A、B、C 或 D。每轮只允许正式作答一次。",
+                description: "按题目稳定 ID 提交题目中的 A、B、C、D 或 E 选项。每轮只允许正式作答一次。",
                 inputSchema: {
                   type: "object",
                   properties: {
                     id: { type: "string", description: "题目 ID，例如 q_0001" },
-                    answer: { type: "string", enum: ["A", "B", "C", "D"] },
+                    answer: { type: "string", enum: ["A", "B", "C", "D", "E"] },
                   },
                   required: ["id", "answer"],
                   additionalProperties: false,
@@ -1162,6 +1190,7 @@
                   }
                   const question = questions.find((item) => item.id === input.id);
                   if (!question) throw new Error("未找到指定题目");
+                  if (!Object.hasOwn(question.options, input.answer)) throw new Error("该题不存在此选项");
                   if (!validAnswers.has(question.correctAnswer)) throw new Error("该题正确答案待确认，暂不能作答");
                   if (question.locked) throw new Error("该题本轮已经作答");
                   answerQuestion(question, input.answer);

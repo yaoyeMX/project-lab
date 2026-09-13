@@ -1,3 +1,6 @@
 /quiz/public-basic.json
 /quiz/python.json
+/quiz/public-basic-300.json
+/quiz/*.json
 /quiz/supabase.sql
+.DS_Store
